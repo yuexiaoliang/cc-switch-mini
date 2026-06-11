@@ -49,14 +49,15 @@ detect_target() {
     *) die "unsupported OS: $os (cc-switch-mini targets Linux servers; macOS works but is unofficial)" ;;
   esac
   case "$arch" in
-    x86_64|amd64) TARGET_ARCH="x64" ;;
-    aarch64|arm64) TARGET_ARCH="arm64" ;;
+    x86_64|amd64) TARGET_ARCH="x86_64" ;;
+    aarch64|arm64) TARGET_ARCH="aarch64" ;;
     *) die "unsupported architecture: $arch" ;;
   esac
   TARGET="${TARGET_OS}-${TARGET_ARCH}"
-  if [ "$TARGET_OS" = "macos" ]; then
-    TARGET="${TARGET}-apple"
-  fi
+  # No `-apple` suffix here on purpose: the release workflow publishes assets
+  # named `cc-switch-mini-{linux,macos}-{x86_64,aarch64}.tar.xz` (no `-apple`).
+  # Earlier versions of this script appended `-apple` (a Rust target-triple
+  # convention) which then 404'd against the actual release artifacts.
 }
 
 # --- 2. Resolve version -------------------------------------------------------
