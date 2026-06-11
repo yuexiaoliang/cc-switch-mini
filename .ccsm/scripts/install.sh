@@ -96,8 +96,15 @@ download_and_verify() {
 
   say "extracting"
   tar -xJf "$workdir/$archive" -C "$workdir"
-  [ -f "$workdir/$BIN_NAME" ] || die "tarball did not contain $BIN_NAME"
-  BIN_PATH="$workdir/$BIN_NAME"
+  # The release workflow stages the tarball with a top-level
+  # `cc-switch-mini/` directory holding the binary (plus README/LICENSE/
+  # CHANGELOG). After extraction the binary lives at
+  # `$workdir/cc-switch-mini/cc-switch-mini`. Accept the legacy flat layout
+  # too in case a future workflow flattens it.
+  if   [ -f "$workdir/$BIN_NAME/$BIN_NAME" ]; then BIN_PATH="$workdir/$BIN_NAME/$BIN_NAME"
+  elif [ -f "$workdir/$BIN_NAME" ];           then BIN_PATH="$workdir/$BIN_NAME"
+  else die "tarball did not contain $BIN_NAME (looked in $workdir/$BIN_NAME/ and $workdir/$BIN_NAME)"
+  fi
 }
 
 # Verify a downloaded archive's SHA-256 against SHA256SUMS. Kept as a
