@@ -79,7 +79,10 @@ download_and_verify() {
   local archive="cc-switch-mini-${TARGET}.tar.xz"
   local url="https://github.com/${GITHUB_REPO}/releases/download/${VERSION}/${archive}"
   local sums_url="https://github.com/${GITHUB_REPO}/releases/download/${VERSION}/SHA256SUMS"
-  local workdir
+  # NB: `workdir` is intentionally *not* `local`. The EXIT trap we install
+  # below is shell-global, not function-scoped, so the variable it expands
+  # must outlive this function. With `set -eu` + `local`, the trap would
+  # see an unset $workdir when it eventually fires.
   workdir="$(mktemp -d)"
   trap 'rm -rf "$workdir"' EXIT
 
@@ -126,7 +129,8 @@ verify_checksum() {
 
 # --- 4. Install ---------------------------------------------------------------
 install_binary() {
-  if [ -w "$INSTALL_DIR" ] || [ "$EUID" -eq 0 ]; then
+  # $EUID is a bash/zsh-ism; use `id -u` (POSIX) to detect root.
+  if [ -w "$INSTALL_DIR" ] || [ "$(id -u)" -eq 0 ]; then
     install -m 0755 "$BIN_PATH" "$INSTALL_DIR/$BIN_NAME"
   else
     say "$INSTALL_DIR is not writable; using sudo"
