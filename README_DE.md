@@ -107,6 +107,87 @@ Das cc-switch-Frontend behandelt nicht implementierte Befehle als 404 und fällt
 
 Wenn der Upstream-Typ in einem `pub mod` liegt, binden wir ihn direkt ein; ist er privat, arbeiten wir direkt auf der Datenbank / Datei. Siehe Datei-Kopfkommentare in `.ccsm/server/src/commands_extra/*.rs` für die Begründung pro Befehl.
 
+## Bedienung
+
+Sobald der Server läuft, ist die Web-UI unter der bei der Installation gewählten URL erreichbar. Für den Alltag gibt es zwei Zugänge: einen CLI-Wrapper und die Web-UI selbst.
+
+### Service-Verwaltung
+
+Der Helfer liegt unter `~/.local/bin/cc-switch-mini-ctl`:
+
+| Unterbefehl | Wirkung |
+| --- | --- |
+| `cc-switch-mini-ctl start` | user-systemd-Dienst aktivieren + starten |
+| `cc-switch-mini-ctl stop` | Dienst stoppen |
+| `cc-switch-mini-ctl restart` | Sauberer Neustart (wird nach `update` automatisch aufgerufen) |
+| `cc-switch-mini-ctl status` | Dienstzustand, Listener, öffentlicher Endpunkt und FRP-Tunnel auf einen Blick |
+| `cc-switch-mini-ctl logs` | `journalctl --user -u cc-switch-mini -f` |
+| `cc-switch-mini-ctl update` | `git pull` + `pnpm install` + `cargo build --release` + Reinstall + Neustart |
+
+`status` zeigt in einem Schritt:
+
+```
+=== cc-switch-mini service ===
+   Active: active (running) since …
+
+=== local listener ===
+LISTEN 0  128  127.0.0.1:3000  0.0.0.0:*  users:(("cc-switch-mini",pid=…))
+
+=== public endpoint ===
+{"status":"ok","version":"3.16.2",…}
+
+=== FRP tunnel ===
+   Active: active (running) since …
+```
+
+### Web-UI — Bedienungsanleitung
+
+`https://<deine-domain>/` im Browser öffnen. Wenn du die
+Basic-Auth-Konfiguration aktiviert hast (siehe **Konfiguration** in
+`.ccsm/deploy/README.md`), erscheint zuerst der Anmelde-Dialog. Die
+UI selbst ist die unveränderte React-App aus dem Upstream-Projekt.
+
+| Aktion in der UI | Wirkung im Backend |
+| --- | --- |
+| App-Tab wechseln (Claude Code / Codex / Hermes / …) | `get_providers` ruft die Provider-Liste der gewählten App neu ab |
+| Provider hinzufügen (➕-Button) | Preset-Katalog öffnen; Auswahl wird als `Provider`-Objekt an `add_provider` gepostet |
+| Provider aktivieren (启用) | `switch_provider` → Upstream `ProviderService::switch` schreibt `~/.claude/settings.json` (o. ä.) und emittiert ein `provider-switched`-SSE-Event |
+| Bearbeiten / Löschen / URL kopieren | Standard-`update_provider` / `delete_provider` / `read_live_provider_settings` |
+| Zahnrad-Symbol (Einstellungen) | Die sechs Tabs (General / Routing / Auth / Advanced / Usage / About) rufen jeweils eigene `get_*` / `save_*`-Befehle auf |
+| MCP / Prompts / Skills | Gleiches Muster — jeder Tab ist ein dünner `invoke`-Wrapper |
+
+Eine vollständige Dispatch-Referenz (welcher UI-Befehl zu welcher
+Service-Methode gehört und welche auf einem Headless-Server als Stub
+laufen) findest du im Abschnitt **Feature-Parität mit Upstream** unten.
+
+### Web-UI via SSH-Tunnel (ohne öffentliche Domain)
+
+Wenn du den Server nicht öffentlich exponierst, ist der SSH-Tunnel
+der empfohlene Weg:
+
+```bash
+ssh -L 3000:localhost:3000 user@host
+# dann http://localhost:3000 im Browser öffnen
+```
+
+Der Server bindet standardmäßig an `127.0.0.1:3000`, was diesen Pfad
+zur empfohlenen Zugriffsart für eine Entwickler-Maschine macht.
+
+### Wo die Daten liegen
+
+cc-switch-mini übernimmt das Upstream-Layout 1:1. Du kannst zwischen
+Desktop-App und Headless-Server wechseln, ohne Daten zu
+importieren/exportieren:
+
+| Inhalt | Pfad | Eigentümer |
+| --- | --- | --- |
+| SQLite-Datenbank | `~/.cc-switch/cc-switch.db` | beide (Upstream-Schema) |
+| Hermes-Konfiguration | `~/.hermes/config.yaml` | beide |
+| Claude-Konfiguration | `~/.claude/settings.json` | beide |
+| Codex-Konfiguration | `~/.codex/config.toml` | beide |
+| Gemini-Konfiguration | `~/.gemini/config.json` | beide |
+| Logs / Temp-Dateien | `~/.local/share/cc-switch-mini/` | nur cc-switch-mini |
+
 ## Architektur
 
 ```
