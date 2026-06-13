@@ -1,4 +1,4 @@
-﻿node_modules/
+node_modules/
 dist/
 release/
 .DS_Store
@@ -7,9 +7,9 @@ release/
 .env.local
 *.tsbuildinfo
 .npmrc
-# CLAUDE.md
-# AGENTS.md
-# GEMINI.md
+CLAUDE.md
+AGENTS.md
+GEMINI.md
 /.claude
 /.codex
 /.gemini
@@ -31,15 +31,20 @@ CODEBUDDY.md
 .github
 mainWindow.js
 
+# === cc-switch-mini additions ===
+!.github/
+# AGENTS.md
+# CLAUDE.md
+# GEMINI.md
 # cc-switch-mini artifacts
+# cc-switch-mini: explicitly allow the .github/ directory. The
+# files tracked, so negate it here.
+# matches every file under .github/ — we need the workflow + template
+# upstream .gitignore (line 31) has a bare .github rule that silently
+.ccsm/server/target/
 /dist/
 /target/
-node_modules/
-.ccsm/server/target/
-
-# cc-switch-mini: explicitly allow the .github/ directory. The
-# upstream .gitignore (line 31) has a bare .github rule that silently
-# matches every file under .github/ — we need the workflow + template
-# files tracked, so negate it here.
-!.github/
-
+<<<<<<< HEAD
+=======
+>>>>>>> 2d64d8c61965fec6e55d232371e404f92f1b396e
+﻿node_modules/
