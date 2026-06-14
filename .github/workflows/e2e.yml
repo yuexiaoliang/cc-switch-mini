@@ -226,11 +226,11 @@ jobs:
         # heartbeat window.
         run: |
           set -a; source e2e.env; set +a
-          timeout 5 curl -sSN -D /tmp/sse_headers.txt \
+          timeout 25 curl -sSN -D /tmp/sse_headers.txt \
             "http://127.0.0.1:$PORT/api/events" \
             | tee /tmp/sse_body.txt &
           SSE_PID=$!
-          sleep 4
+          sleep 20
           kill $SSE_PID 2>/dev/null || true
           wait $SSE_PID 2>/dev/null || true
           grep -qi '^content-type: text/event-stream' /tmp/sse_headers.txt
