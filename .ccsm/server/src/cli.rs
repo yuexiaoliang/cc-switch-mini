@@ -24,8 +24,11 @@ pub struct Cli {
     #[arg(long, default_value_t = 3000, value_name = "PORT")]
     pub port: u16,
 
-    /// Directory used to persist the SQLite database and backups. The
-    /// database file lives at `<data-dir>/cc-switch.db`.
+    /// Directory used to persist the SQLite database and backups. When
+    /// explicitly provided, upstream's home-dir-relative paths are relocated
+    /// here, so the database lives at `<data-dir>/.cc-switch/cc-switch.db`
+    /// and host tool configs (Claude, Codex, Gemini, Hermes) live under
+    /// `<data-dir>/` as well.
     #[arg(long, value_name = "DIR", env = "CC_SWITCH_MINI_DATA_DIR")]
     pub data_dir: Option<PathBuf>,
 
@@ -53,6 +56,11 @@ pub struct Cli {
 pub struct Resolved {
     pub bind_addr: SocketAddr,
     pub data_dir: PathBuf,
+    /// Whether `--data-dir` was explicitly provided on the CLI.
+    /// When true, the server relocates upstream's home-dir-relative paths
+    /// (database at `~/.cc-switch`, host tool configs) into `data_dir` so
+    /// that the data directory is actually self-contained.
+    pub explicit_data_dir: bool,
     pub config_dir: Option<PathBuf>,
     pub token: Option<String>,
     pub spa_fallback: bool,
@@ -60,6 +68,7 @@ pub struct Resolved {
 
 impl Resolved {
     pub fn resolve(cli: Cli) -> std::io::Result<Self> {
+        let explicit_data_dir = cli.data_dir.is_some();
         let data_dir = match cli.data_dir {
             Some(dir) => dir,
             None => default_data_dir()?,
@@ -78,6 +87,7 @@ impl Resolved {
         Ok(Self {
             bind_addr,
             data_dir,
+            explicit_data_dir,
             config_dir: cli.config_dir,
             token: cli.token,
             spa_fallback: !cli.no_spa_fallback,
@@ -129,6 +139,7 @@ impl Resolved {
         Self {
             bind_addr: "127.0.0.1:0".parse().unwrap(),
             data_dir: std::path::PathBuf::from("/tmp/cc-switch-mini-test"),
+            explicit_data_dir: false,
             config_dir: None,
             token: None,
             spa_fallback: true,

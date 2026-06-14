@@ -94,6 +94,11 @@ jobs:
           DATA_DIR="$GITHUB_WORKSPACE/.ccsm-e2e-data"
           rm -rf "$DATA_DIR"
           mkdir -p "$DATA_DIR"
+          # Seed a minimal Claude Code settings file so the
+          # import_default_config dispatch call can exercise the live-config
+          # import path in a headless CI environment.
+          mkdir -p "$DATA_DIR/.claude"
+          echo '{"defaultModel":"claude-sonnet-4-6"}' > "$DATA_DIR/.claude/settings.json"
           # Boot the server briefly to trigger the init path. We kill
           # it once the health endpoint answers, then bring it back up
           # for the rest of the e2e.
@@ -101,7 +106,7 @@ jobs:
             --host 127.0.0.1 --port 13000 \
             --data-dir "$DATA_DIR" &
           SERVER_PID=$!
-          for i in $(seq 1 30); do
+          for i in $(seq 1 120); do
             if curl -fs http://127.0.0.1:13000/api/health >/dev/null 2>&1; then
               echo "server is up after ${i}s"
               break
@@ -247,7 +252,7 @@ jobs:
             --host 127.0.0.1 --port 13000 \
             --data-dir "$DATA_DIR" &
           echo $! > server.pid
-          for i in $(seq 1 30); do
+          for i in $(seq 1 120); do
             if curl -fs http://127.0.0.1:13000/api/health >/dev/null 2>&1; then
               break
             fi
